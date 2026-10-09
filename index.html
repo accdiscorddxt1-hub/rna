@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mô hình 3D Cấu trúc mRNA - Tương tác & Thành viên</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #070913;
+            font-family: Arial, sans-serif;
+            color: #fff;
+            user-select: none;
+        }
+        #info {
+            position: absolute;
+            top: 15px;
+            width: 100%;
+            text-align: center;
+            z-index: 100;
+            pointer-events: none;
+            font-size: 15px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            backdrop-filter: blur(5px);
+        }
+        #legend {
+            position: absolute;
+            bottom: 25px;
+            left: 20px;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            backdrop-filter: blur(5px);
+            line-height: 1.6;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+        .color-box {
+            width: 14px;
+            height: 14px;
+            margin-right: 8px;
+            border-radius: 3px;
+        }
+        #instructions {
+            position: absolute;
+            bottom: 25px;
+            right: 20px;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            text-align: right;
+            backdrop-filter: blur(5px);
+            color: #94a3b8;
+            pointer-events: none;
+        }
+        
+        /* Nút mở danh sách thành viên */
+        #member-btn {
+            position: absolute;
+            top: 15px;
+            left: 20px;
+            z-index: 101;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+            transition: background 0.2s;
+        }
+        #member-btn:hover {
+            background: #2563eb;
+        }
+
+        /* Hộp thoại danh sách thành viên */
+        #member-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 200;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            backdrop-filter: blur(5px);
+        }
+        #member-modal.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .modal-content {
+            background: #1e293b;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            padding: 20px 25px;
+            border-radius: 12px;
+            width: 340px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+            text-align: left;
+        }
+        .modal-content h3 {
+            margin-top: 0;
+            color: #38bdf8;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 16px;
+        }
+        .close-modal {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            font-size: 20px;
+            cursor: pointer;
+        }
+        .close-modal:hover {
+            color: #fff;
+        }
+        .member-list {
+            list-style-type: none;
+            padding: 0;
+            margin: 10px 0 0 0;
+        }
+        .member-list li {
+            padding: 7px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .member-list li:last-child {
+            border-bottom: none;
+        }
+        .member-num {
+            color: #94a3b8;
+            font-size: 12px;
+            width: 25px;
+        }
+        .member-name {
+            flex-grow: 1;
+        }
+
+        /* Bảng hiển thị thông tin phân tử 3D khi click */
+        #detail-panel {
+            position: absolute;
+            top: 75px;
+            right: 20px;
+            width: 300px;
+            background: rgba(10, 15, 30, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            padding: 15px;
+            z-index: 100;
+            backdrop-filter: blur(8px);
+            display: none;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+        #detail-panel.active {
+            display: block;
+        }
+        #detail-panel h4 {
+            margin: 0 0 8px 0;
+            color: #38bdf8;
+            display: flex;
+            justify-content: space-between;
+        }
+        #detail-panel p {
+            font-size: 12px;
+            line-height: 1.5;
+            color: #cbd5e1;
+            margin: 6px 0;
+        }
+        .close-panel-btn {
+            background: none;
+            border: none;
+            color: #aaa;
+            cursor: pointer;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <button id="member-btn" onclick="toggleModal(true)">👥 Thành viên nhóm</button>
+
+    <div id="info"><b>Mô hình 3D Cấu trúc mRNA Tương tác</b></div>
+    
+    <!-- Hộp thoại Thành viên -->
+    <div id="member-modal">
+        <div class="modal-content">
+            <h3>Danh sách Thành viên <button class="close-modal" onclick="toggleModal(false)">&times;</button></h3>
+            <ul class="member-list">
+                <li><span class="member-num">1.</span><span class="member-name">Trung Hiếu</span></li>
+                <li><span class="member-num">2.</span><span class="member-name">Khánh Hoàng</span></li>
+                <li><span class="member-num">3.</span><span class="member-name">Kiều Anh</span></li>
+                <li><span class="member-num">4.</span><span class="member-name">Thanh Trà</span></li>
+                <li><span class="member-num">5.</span><span class="member-name">Khánh Duy</span></li>
+                <li><span class="member-num">6.</span><span class="member-name">Khánh Băng</span></li>
+                <li><span class="member-num">7.</span><span class="member-name">Hoàng Quân</span></li>
+                <li><span class="member-num">8.</span><span class="member-name">Nguyễn Ngọc Như Ý</span></li>
+                <li><span class="member-num">9.</span><span class="member-name">Huyền My</span></li>
+                <li><span class="member-num">10.</span><span class="member-name">Xuân Thắng</span></li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Bảng thông tin phân tử khi click -->
+    <div id="detail-panel">
+        <h4><span id="panel-name">Tên phân tử</span> <button class="close-panel-btn" onclick="closePanel()">&times;</button></h4>
+        <p><b>Loại:</b> <span id="panel-type">---</span></p>
+        <p><b>Công thức:</b> <span id="panel-formula">---</span></p>
+        <p><b>Mô tả:</b> <span id="panel-desc">---</span></p>
+    </div>
+
+    <div id="legend">
+        <b>Gốc Bazơ Nitơ (Chạm để xem):</b>
+        <div class="legend-item"><div class="color-box" style="background: #ef4444;"></div>Adenine (A)</div>
+        <div class="legend-item"><div class="color-box" style="background: #3b82f6;"></div>Uracil (U)</div>
+        <div class="legend-item"><div class="color-box" style="background: #10b981;"></div>Guanine (G)</div>
+        <div class="legend-item"><div class="color-box" style="background: #f59e0b;"></div>Cytosine (C)</div>
+    </div>
+
+    <div id="instructions">
+        <b>PC:</b> Giữ chuột trái + kéo để xoay<br>Cuộn chuột để phóng to<br>
+        <b>Mobile:</b> Vuốt để xoay | Chụm phóng to<br>💡 Chạm trực tiếp vào nguyên tử để xem thông tin
+    </div>
+
+    <!-- Nhúng thư viện Three.js và OrbitControls từ CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        // Điều khiển bảng thành viên
+        function toggleModal(show) {
+            const modal = document.getElementById('member-modal');
+            if (show) {
+                modal.classList.add('active');
+            } else {
+                modal.classList.remove('active');
+            }
+        }
+
+        // Cơ sở dữ liệu thông tin chi tiết các thành phần
+        const moleculeData = {
+            'A': { name: 'Adenine (A)', type: 'Bazơ Purine (Vòng kép)', formula: 'C₅H₅N₅', desc: 'Bazơ nitơ bắt cặp đặc hiệu với Uracil (U) trong quá trình phiên mã thông qua 2 liên kết Hydro.' },
+            'U': { name: 'Uracil (U)', type: 'Bazơ Pyrimidine (Vòng đơn)', formula: 'C₄H₄N₂O₂', desc: 'Bazơ đặc trưng trên RNA thay thế cho Thymine của DNA, đóng vai trò quan trọng khi dịch mã.' },
+            'G': { name: 'Guanine (G)', type: 'Bazơ Purine (Vòng kép)', formula: 'C₅H₅N₅O', desc: 'Liên kết bền vững với Cytosine thông qua 3 liên kết Hydro, giúp cấu trúc ổn định nhiệt cao.' },
+            'C': { name: 'Cytosine (C)', type: 'Bazơ Pyrimidine (Vòng đơn)', formula: 'C₄H₅N₃O', desc: 'Thành phần quan trọng tạo nên tính bền vững cho các cấu trúc không gian cục bộ của chuỗi mRNA.' },
+            'Backbone': { name: 'Khung Phosphate - Đường Ribose', type: 'Mạch xương sống', formula: 'C₅H₁₀O₅ gắn PO₄³⁻', desc: 'Tạo mạch chính cho chuỗi đơn mRNA, giúp phân tử hòa tan tốt trong môi trường nước tế bào chất.' }
+        };
+
+        // Khởi tạo Scene, Camera, Renderer
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x070913, 0.015);
+
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 0, 45);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        let autoRotate = true;
+
+        // Hệ thống ánh sáng
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+        scene.add(ambientLight);
+
+        const pointLight1 = new THREE.PointLight(0xffffff, 1.5);
+        pointLight1.position.set(25, 30, 30);
+        scene.add(pointLight1);
+
+        const pointLight2 = new THREE.PointLight(0x3b82f6, 1);
+        pointLight2.position.set(-25, -30, -30);
+        scene.add(pointLight2);
+
+        // Nhóm chứa toàn bộ cấu trúc mRNA
+        const mrnaGroup = new THREE.Group();
+        scene.add(mrnaGroup);
+
+        const baseColors = { 'A': 0xef4444, 'U': 0x3b82f6, 'G': 0x10b981, 'C': 0xf59e0b };
+        const bases = ['A', 'U', 'G', 'C'];
+        const interactableObjects = [];
+
+        const numNodes = 45;
+        const radius = 5.5;
+        const heightStep = 0.75;
+        const sphereGeo = new THREE.SphereGeometry(0.45, 16, 16);
+        const cylinderGeo = new THREE.CylinderGeometry(0.12, 0.12, 1, 8);
+
+        let prevPoint = null;
+
+        for (let i = 0; i < numNodes; i++) {
+            const angle = i * 0.45;
+            const x = Math.cos(angle) * radius;
+            const z = Math.sin(angle) * radius;
+            const y = (i - numNodes / 2) * heightStep;
+
+            const currentPoint = new THREE.Vector3(x, y, z);
+
+            // 1. Khung xương (Phosphate - Đường Ribose)
+            const backboneMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.3 });
+            const backboneMesh = new THREE.Mesh(sphereGeo, backboneMat);
+            backboneMesh.position.copy(currentPoint);
+            backboneMesh.userData = { id: 'Backbone' };
+            mrnaGroup.add(backboneMesh);
+            interactableObjects.push(backboneMesh);
+
+            // Nối liên kết khung xương dọc theo chuỗi
+            if (prevPoint) {
+                const distance = prevPoint.distanceTo(currentPoint);
+                const connectorMat = new THREE.MeshStandardMaterial({ color: 0x475569 });
+                const connector = new THREE.Mesh(cylinderGeo, connectorMat);
+                connector.scale.set(1, distance, 1);
+                connector.position.copy(prevPoint).add(currentPoint).multiplyScalar(0.5);
+                connector.lookAt(currentPoint);
+                connector.rotateX(Math.PI / 2);
+                mrnaGroup.add(connector);
+            }
+            prevPoint = currentPoint;
+
+            // 2. Gốc bazơ nitơ hướng ra phía ngoài
+            const baseType = bases[i % bases.length];
+            const baseColor = baseColors[baseType];
+            
+            const outwardDir = new THREE.Vector3(x, 0, z).normalize();
+            const basePos = currentPoint.clone().add(outwardDir.clone().multiplyScalar(2.2));
+
+            const baseMat = new THREE.MeshStandardMaterial({ color: baseColor, roughness: 0.2, metalness: 0.1 });
+            const baseMesh = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.7, 0.7), baseMat);
+            baseMesh.position.copy(basePos);
+            baseMesh.userData = { id: baseType };
+            mrnaGroup.add(baseMesh);
+            interactableObjects.push(baseMesh);
+
+            // Thanh nối từ khung xương ra gốc bazơ
+            const linkConnector = new THREE.Mesh(cylinderGeo, baseMat);
+            linkConnector.scale.set(1, 2.2, 1);
+            linkConnector.position.copy(currentPoint).add(basePos).multiplyScalar(0.5);
+            linkConnector.lookAt(basePos);
+            linkConnector.rotateX(Math.PI / 2);
+            mrnaGroup.add(linkConnector);
+        }
+
+        // Xử lý Raycaster chọn phân tử trên màn hình
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        let selectedMesh = null;
+
+        window.addEventListener('pointerdown', (event) => {
+            if (event.target.tagName === 'BUTTON' || event.target.closest('#member-modal') || event.target.closest('#detail-panel')) return;
+
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(interactableObjects);
+
+            if (intersects.length > 0) {
+                autoRotate = false;
+                const hit = intersects[0].object;
+                const info = moleculeData[hit.userData.id];
+
+                if (info) {
+                    document.getElementById('panel-name').innerText = info.name;
+                    document.getElementById('panel-type').innerText = info.type;
+                    document.getElementById('panel-formula').innerText = info.formula;
+                    document.getElementById('panel-desc').innerText = info.desc;
+                    document.getElementById('detail-panel').classList.add('active');
+
+                    if (selectedMesh && selectedMesh !== hit) {
+                        selectedMesh.scale.set(1, 1, 1);
+                    }
+                    selectedMesh = hit;
+                    selectedMesh.scale.set(1.4, 1.4, 1.4);
+                }
+            }
+        });
+
+        function closePanel() {
+            document.getElementById('detail-panel').classList.remove('active');
+            if (selectedMesh) {
+                selectedMesh.scale.set(1, 1, 1);
+                selectedMesh = null;
+            }
+            autoRotate = true;
+        }
+
+        // Vòng lặp render
+        let clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (autoRotate) {
+                mrnaGroup.rotation.y = clock.getElapsedTime() * 0.12;
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
